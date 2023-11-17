@@ -1,0 +1,229 @@
+= SICK Visionary C++ shared changelog
+
+This document provides a summary of all notable changes of the Visionary C++ shared library.
+For a detailed view of what was changed, please refer to the repository's commit history.
+
+This project utilizes semantic versioning.
+
+
+== 2.2.0
+
+First public release.
+
+=== Changed
+
+* enforce style guide using pre-commit
+
+=== Fixed
+* *Visionary-T Mini*: after changing ROI and/or binning the generated pointcloud was not correct (contained old/duplicate points)
+
+=== Known Issues
+
+* *VisionaryAutoIPScan*: currently does not work for Visionary Tmini since this product uses a new scanning protocol.
+
+=== Compatibility
+
+* *Visual Studio*: needs to be 14.0 or later
+* *gcc*: needs to be version 8.0 or later
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x, 2.x
+* (deprecated) Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 2.1.0
+
+=== Changed
+
+* *CMake:* building of `VisionaryAutoIPScan` can be disabled using CMake option `VISIONARY_SHARED_ENABLE_AUTOIP`
+* *CMake*: prefixing project CMake variables by `VISIONARY_SHARED` (exception is `BUILD_SHARD_LIBS`)
+* *VisionaryAutoIPScan*: constants defined by this module are now in the `VisionaryAutoIPScan` class namespace
+* *VisionaryAutoIPScan*: port number of detected devices is now a `uint16_t` (was `std::string` before)
+* *all*: timeout millisecond values are now a `uint32_t` (was `uint64_t` before)
+
+=== Fixed
+
+* *VisionaryAutoIPScan*: is available on Linux
+* *tests*: unit tests `VisionaryTMiniDataTest.h` didn't build under Linux due to `Framegrabber.h` being renamed to `FrameGrabber.h`.
+=== Known Issues
+
+* *VisionaryAutoIPScan*: currently does not work for Visionary Tmini since this product uses a new scanning protocol.
+
+=== Compatibility
+
+* *Visual Studio*: needs to be 14.0 or later
+* *gcc*: needs to be version 8.0 or later
+
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x, 2.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 2.0.0
+
+=== Changed
+
+* *TcpSocket* / *UdpSocket*: the port number is now provided in host byte order to the `connect` method
+                             (before it was network byte order). +
+                             The conversion is now done by the method `connect`.
+* *VisionaryDataStream* / *FrameGrabber*: port number is in host byte order here as well.
+
+=== Fixed
+
+* *VisionaryData*: `getTimestampMS` returned timestamp in µs (now fixed to correctly return milliseconds).
+
+=== Added
+
+* *VisionaryControl*: method to start single or burst snapshot acqusition (`burstAcquisition`)
+* *VisionaryControl*: added method to query API Blob port (`GetBlobPort`)
+* *CMake*: (experimental) option to build a shared library (using `BUILD_SHARED_LIBS`).
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x, 2.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 1.3.0
+
+withdrawn
+
+
+== 1.2.0
+
+=== Changed
+
+* uses new authentication (SICK CoLa secure user level 1 or 2) if available as required for Visionary Tmini
+
+=== Fixed
+
+* Fix potential segfaults in ColaProtocolHandlers, VisionaryData Classes and Socket Classes
+
+=== Added
+
+* *FrameGrabber*: class which receives frames from the device in background thread and provides the latest one via an interface.
+* *AuthenticationSecure*: support for Secure User Level 1 and 2
+* *tests*: unit tests for `Cola2ProtocolHandler` and `VisionaryData`
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x, 2.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 1.1.0
+
+=== Changed
+
+* Use system boost if available
+
+=== Fixed
+
+* *ColaParameterreader* / *TcpSocket* / *VisionaryDataStream*: prevent potential crash if malformed data is received
+* *VisionaryControl*: Fix crash if send is used on closed connection
+
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 1.0.2
+
+=== Fixed
+
+* *CoLaCommand* , *TcpSocket*, *UdpSocket*, *VisionaryControl*, *VisionaryData*, *VisionaryDataStream*, *VisionarySData*, *VisionaryTData*, *VisionaryTMiniData*:  some member variables were not initialized, giving problems in error cases
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 1.0.1
+
+=== Fixed
+
+* *VisionaryDataStream*:  propagate Timeout to `TcpSocket`
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 1.0.0
+
+=== Changed
+
+* *TcpSocket*: merged connect functions into one overloadable connect function
+
+
+=== Supported devices
+
+*Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 0.3.0
+
+=== Changed
+
+=== Fixed
+
+* *PointCloudPlyWriter*: improved performance of PLY file generation
+
+=== Added
+
+* *PointCloudPlyWriter*: parameter to set presentation mode of PLY File to define handling of invalid Points(Invalid as NaN/Invalid as Zero/Invalid Skip)
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 0.2.0
+
+=== Changed
+
+* Auto reconnect as default behaviour in case of expired Cola2 Session
+
+=== Fixed
+
+* Fix units for session timeout parameter of openSession
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 0.1.0
+
+Initial version
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x
+* Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
+== 0.0.1, 0.0.2
+
+Internal releases

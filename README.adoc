@@ -1,0 +1,20 @@
+= sick_visionary_cpp_shared
+
+== Overview
+
+This repository provides shared classes to interface with SICK Visionary devices.
+
+Parameterization via CoLa B/2 and data reception via SICK Blob format.
+
+=== License
+
+The source code is released under link:/LICENSE[The Unlicense].
+
+== Support
+
+Depending on the nature of your request, there are two support channels:
+
+1. For questions regarding the code shared in this repo please check the FAQ first and https://guides.github.com/features/issues/[search if an issue already exists].
+   If a related issue doesn't exist, you can open a new issue using the link:.github/issue_form.md[issue form].
+2. For application or device specific questions look for common solutions and knowledge articles on the https://support.sick.com/[Sick Support Portal].
+   If your question is not answered there, open a ticket on the https://support.sick.com/[Sick Support Portal].
