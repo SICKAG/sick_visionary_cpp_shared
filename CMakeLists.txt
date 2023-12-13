@@ -14,8 +14,11 @@ project(sick_visionary_cpp_shared
 
 ### Options
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-option(VISIONARY_SHARED_ENABLE_CODE_COVERAGE "Enable code coverage using gcov" OFF)
 option(VISIONARY_SHARED_ENABLE_AUTOIP "Enables the SOPAS Auto-IP device scan code (needs boost's ptree)" ON)
+option(VISIONARY_SHARED_ENABLE_UNITTESTS "Enables google-test based unit tests" OFF)
+option(VISIONARY_SHARED_ENABLE_AUTOIP "Enables the SOPAS Auto-IP device scan code (needs boost's ptree)" ON)
+option(VISIONARY_SHARED_INTERNAL_USE_CONAN "(internal) Build using Conan package manager" OFF)
+option(VISIONARY_SHARED_ENABLE_BUNDLED_BOOST_FALLBACK "Enables the bundles BOOST implementation if no other BOOST installation was found" ON)
 
 
 ### COMPILER FLAGS ###
@@ -25,7 +28,18 @@ endif()
 
 
 ### Dependencies
-find_package(Boost)
+if (VISIONARY_SHARED_ENABLE_AUTOIP)
+  if (VISIONARY_SHARED_ENABLE_BUNDLED_BOOST_FALLBACK)
+    find_package(Boost QUIET)
+    if (NOT Boost_FOUND)
+      message(STATUS "Using bundled Boost")
+      set(BOOST_INCLUDEDIR ${CMAKE_CURRENT_SOURCE_DIR}/3pp)
+      find_package(Boost REQUIRED)
+    endif()
+  else()
+    find_package(Boost REQUIRED)
+  endif()
+endif()
 
 
 ### BUILD ###
@@ -34,6 +48,11 @@ message(STATUS "Shared library: ${BUILD_SHARED_LIBS}")
 set(TARGET_NAME ${PROJECT_NAME})
 
 add_library(${TARGET_NAME} )
+
+if (Boost_FOUND)
+  message(STATUS "Using BOOST from ${Boost_INCLUDE_DIRS}")
+  target_link_libraries(${TARGET_NAME} Boost::boost)
+endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES
   CXX_STANDARD 11
@@ -80,10 +99,6 @@ target_include_directories(${TARGET_NAME}
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
     3pp/md5
     3pp/sha256)
-
-if(NOT Boost_FOUND)
-target_include_directories(${TARGET_NAME} PUBLIC 3pp)
-endif()
 
 if(_WIN32)
   target_link_libraries(${TARGET_NAME} wsock32 ws2_32)
@@ -197,25 +212,30 @@ install(
 )
 
 # Unit tests
-# find GoogleTest, first using 'non-standard' form of e.g. CONAN packages
-find_package(GoogleTest)
-if (GoogleTest_FOUND)
-  message(STATUS "GoogleTest found")
-  set(GTest_FOUND ON)
-  set(GTest_target GoogleTest::GoogleTest)
-else()
-  # now try the standard form  we unify it to "GTest"
-  find_package(GTest QUIET)
-  if(GTest_FOUND)
-    message(STATUS "GTest found")
-    set(GTest_target GTest::gtest)
+# find GoogleTest, using 'non-standard' form of e.g. CONAN packages
+if(VISIONARY_SHARED_ENABLE_UNITTESTS)
+  message(STATUS "Enabling unit tests")
+  if(VISIONARY_SHARED_INTERNAL_USE_CONAN)
+    find_package(GoogleTest)
+    if (GoogleTest_FOUND)
+      message(STATUS "CONAN GoogleTest package found")
+      set(GTest_FOUND ON)
+      set(GTest_target GoogleTest::GoogleTest)
+    endif()
+  else()
+    # now try the standard form  we unify it to "GTest"
+    find_package(GTest)
+    if(GTest_FOUND)
+      message(STATUS "GTest found")
+      set(GTest_target GTest::gtest)
+    endif()
   endif()
-endif()
 
-if(GTest_FOUND)
-  enable_testing()
-  add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
-  message(STATUS "Building unit tests")
-else()
-  message(STATUS "GTest not found. Tests are not built")
+  if(GTest_FOUND)
+    enable_testing()
+    add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
+    message(STATUS "Building unit tests")
+  else()
+    message(STATUS "GTest not found. Tests are not built")
+  endif()
 endif()

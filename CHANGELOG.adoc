@@ -6,6 +6,37 @@ For a detailed view of what was changed, please refer to the repository's commit
 This project utilizes semantic versioning.
 
 
+== 2.3.0
+
+=== Changed
+
+=== Added
+
+* *VisionaryAutoIPScan*: added method to assign ip address to device
+* *VisionaryAutoIPScan*: support for Cola2 protocol version
+* *CMake*: adding option to enable unit testing (`VISIONARY_SHARED_ENABLE_UNITTESTS`)`(default: `OFF`))`
+* *CMake*: adding option to enable the bundled boost library as fallback (`VISIONARY_SHARED_ENABLE_BUNDLED_BOOST_FALLBACK`) (default: `ON`)
+
+=== Fixed
+
+* *CMake*: fixing warning when gtest was not found.
+
+=== Known Issues
+
+* *VisionaryAutoIPScan*: Now works for Visionary-T Mini. Currently only tested on Linux.
+
+=== Compatibility
+
+* *Visual Studio*: needs to be 14.0 or later
+* *gcc*: needs to be version 8.0 or later
+
+=== Supported devices
+
+* Visionary-T Mini CX (V3S105-1AAAAAA) versions 1.x, 2.x
+* (deprecated) Visionary-T CX, AG, DT
+* Visionary-S CX (V3S102-1AAAAAA and V3S102-1AABAAB)
+
+
 == 2.2.0
 
 First public release.
@@ -47,6 +78,7 @@ First public release.
 
 * *VisionaryAutoIPScan*: is available on Linux
 * *tests*: unit tests `VisionaryTMiniDataTest.h` didn't build under Linux due to `Framegrabber.h` being renamed to `FrameGrabber.h`.
+
 === Known Issues
 
 * *VisionaryAutoIPScan*: currently does not work for Visionary Tmini since this product uses a new scanning protocol.
