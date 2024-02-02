@@ -2,11 +2,36 @@
 
 == Overview
 
-This repository provides shared classes to interface with SICK Visionary devices.
+This repository provides the base interfaces to access SICK Visionary devices.
+Using the classes in this module parameters can be queried and configured, status information can be accessed
+and 3D image data streams can be set up and controlled.
 
-Parameterization via CoLa B/2 and data reception via SICK Blob format.
+Supported protocols are
+* CoLa-B for parametrization as used by the Visionary-T (CX/AG/DT) and Visionary-S devices.
+* CoLa-2 for parametrization as used by the Visionary-T Mini device.
+* the SICK Blob format for streaming data.
 
-=== License
+
+== Building
+
+The module uses the https://cmake.org/[CMake] build system version 3.16 or higher.
+Beside the standard options like https://cmake.org/cmake/help/v3.16/variable/CMAKE_BUILD_TYPE.html[`CMAKE_BUILD_TYPE`] for code generation and
+the https://cmake.org/cmake/help/v3.16/module/GNUInstallDirs.html[installation directory options]
+it supports the following additional CMake build options:
+
+[cols="0m,4d,1d,0d"]
+|===
+| option name | description | values | default value
+
+| BUILD_SHARED_LIBS | Build using shared libraries | `ON`, `OFF` | `OFF`
+| VISIONARY_SHARED_ENABLE_AUTOIP | Enables the SOPAS Auto-IP device scan code (needs boost's ptree and foreach) |`ON`, `OFF` | `ON`
+| VISIONARY_SHARED_ENABLE_UNITTESTS | Enables google-test based unit tests | `ON`, `OFF` | `OFF`
+| VISIONARY_SHARED_ENABLE_AUTOIP | Enables the SOPAS Auto-IP device scan code (needs boost's ptree and foreach) | `ON`, `OFF` | `ON`
+| VISIONARY_SHARED_USE_BUNDLED_BOOST | Uses the bundled Boost implementation | `ON`, `OFF` | `ON`
+|===
+
+
+== License
 
 The source code is released under link:/LICENSE[The Unlicense].
 

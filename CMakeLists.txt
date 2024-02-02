@@ -6,9 +6,9 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(sick_visionary_cpp_shared
-        VERSION 2.1.0
+        VERSION 2.5.0
         DESCRIPTION "Visionary access via network"
-        HOMEPAGE_URL "https://gitlab.sick.com/gbc09/bu05/public/sick-visionary-cpp-shared"
+        HOMEPAGE_URL "https://github.com/SICKAG/sick_visionary_cpp_shared"
         LANGUAGES CXX)
 
 
@@ -18,7 +18,7 @@ option(VISIONARY_SHARED_ENABLE_AUTOIP "Enables the SOPAS Auto-IP device scan cod
 option(VISIONARY_SHARED_ENABLE_UNITTESTS "Enables google-test based unit tests" OFF)
 option(VISIONARY_SHARED_ENABLE_AUTOIP "Enables the SOPAS Auto-IP device scan code (needs boost's ptree)" ON)
 option(VISIONARY_SHARED_INTERNAL_USE_CONAN "(internal) Build using Conan package manager" OFF)
-option(VISIONARY_SHARED_ENABLE_BUNDLED_BOOST_FALLBACK "Enables the bundles BOOST implementation if no other BOOST installation was found" ON)
+option(VISIONARY_SHARED_USE_BUNDLED_BOOST "Uses the bundled Boost implementation" ON)
 
 
 ### COMPILER FLAGS ###
@@ -27,31 +27,45 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 
+### create the target
+set(TARGET_NAME ${PROJECT_NAME})
+
+add_library(${TARGET_NAME})
+
+
 ### Dependencies
+set(VISIONARY_SHARED_PRIVATE_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}/3pp/md5
+  ${CMAKE_CURRENT_SOURCE_DIR}/3pp/sha256)
+
+set(VISIONARY_SHARED_LINK_LIBRARIES)
+
 if (VISIONARY_SHARED_ENABLE_AUTOIP)
-  if (VISIONARY_SHARED_ENABLE_BUNDLED_BOOST_FALLBACK)
-    find_package(Boost QUIET)
-    if (NOT Boost_FOUND)
-      message(STATUS "Using bundled Boost")
-      set(BOOST_INCLUDEDIR ${CMAKE_CURRENT_SOURCE_DIR}/3pp)
-      find_package(Boost REQUIRED)
-    endif()
+  if (VISIONARY_SHARED_USE_BUNDLED_BOOST)
+    message(STATUS "Using bundled Boost")
+    # include path must must be set explicitely, otherwise when using find_package with  3pp a previous outside find_package(Boost) would take precendence
+    list(APPEND
+      VISIONARY_SHARED_PRIVATE_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/3pp)
   else()
-    find_package(Boost REQUIRED)
+    # require minimum version when property_tree was introduced - 1.41 (foreach is even older)
+    find_package(Boost 1.41 REQUIRED)
+    target_link_libraries(${TARGET_NAME} Boost::boost)
   endif()
+endif()
+
+find_package(Threads)
+list(APPEND VISIONARY_SHARED_LINK_LIBRARIES
+  ${CMAKE_THREAD_LIBS_INIT})
+
+if(WIN32)
+  list(APPEND VISIONARY_SHARED_LINK_LIBRARIES
+    wsock32 ws2_32)
 endif()
 
 
 ### BUILD ###
-message(STATUS "Shared library: ${BUILD_SHARED_LIBS}")
-
-set(TARGET_NAME ${PROJECT_NAME})
-
-add_library(${TARGET_NAME} )
-
-if (Boost_FOUND)
-  message(STATUS "Using BOOST from ${Boost_INCLUDE_DIRS}")
-  target_link_libraries(${TARGET_NAME} Boost::boost)
+if (BUILD_SHARED_LIBS)
+  message(STATUS "A shared library will be generated")
 endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES
@@ -97,15 +111,14 @@ target_include_directories(${TARGET_NAME}
   PUBLIC
     "$<INSTALL_INTERFACE:include>"
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
-    3pp/md5
-    3pp/sha256)
+  PRIVATE
+    ${VISIONARY_SHARED_PRIVATE_INCLUDE_DIRS}
+)
 
-if(_WIN32)
-  target_link_libraries(${TARGET_NAME} wsock32 ws2_32)
-endif()
+target_link_libraries(${TARGET_NAME} ${VISIONARY_SHARED_LINK_LIBRARIES})
 
 # configure warnings
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+if (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") AND (NOT DEFINED VISIONARY_SHARED_CFLAGS))
   set(VISIONARY_SHARED_CFLAGS
     -Werror
     -Wall
@@ -142,9 +155,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     -ffunction-sections
     -fdata-sections
   )
-  set_source_files_properties(3pp/md5/MD5.cpp PROPERTIES COMPILE_FLAGS "-Wno-old-style-cast -Wno-sign-conversion")
-  set_source_files_properties(3pp/sha256/SHA256.cpp PROPERTIES COMPILE_FLAGS "-Wno-old-style-cast -Wno-cast-qual")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+elseif (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC") AND (NOT DEFINED VISIONARY_SHARED_CFLAGS))
   set(VISIONARY_SHARED_CFLAGS
     /W4
     /WX
@@ -169,6 +180,14 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     /w45062
     /w45219
   )
+endif() # compilers
+
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set_source_files_properties(3pp/md5/MD5.cpp PROPERTIES COMPILE_FLAGS "-Wno-old-style-cast -Wno-sign-conversion")
+  set_source_files_properties(3pp/sha256/SHA256.cpp PROPERTIES COMPILE_FLAGS "-Wno-old-style-cast -Wno-cast-qual")
+  set_source_files_properties(src/CoLaBProtocolHandler.cpp PROPERTIES COMPILE_FLAGS "-Wno-stringop-overflow")
+  set_source_files_properties(src/CoLa2ProtocolHandler.cpp PROPERTIES COMPILE_FLAGS "-Wno-stringop-overflow")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set_source_files_properties(3pp/md5/MD5.cpp PROPERTIES COMPILE_FLAGS "-D _CRT_SECURE_NO_WARNINGS /wd4267")
 endif() # compilers
 

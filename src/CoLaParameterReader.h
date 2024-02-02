@@ -89,6 +89,12 @@ public:
   /// Throws an std::out_of_range exception if CoLaCommand is invalid
   /// </summary>
   std::string readFlexString();
+
+  /// <summary>
+  /// Read a string (with a known and fixed length), and advance position according to string size.
+  /// Throws an std::out_of_range exception if CoLaCommand is invalid
+  /// </summary>
+  std::string readFixedString(uint16_t len);
 };
 
 } // namespace visionary

@@ -50,9 +50,9 @@ public:
   /**
    * Constructor for the AutoIP scan
    * @param serverIP ip address of the server which is executing the search
-   * @param serverNetMask netmask of the server which is executing the search
+   * @param prefixLength the network prefix length of the server in the CIDR manner
    */
-  VisionaryAutoIPScan(const std::string& serverIP, const std::string& serverNetMask);
+  VisionaryAutoIPScan(const std::string& serverIP, std::uint8_t prefixLength);
   /**
    * Runs an autoIP scan and returns a list of devices
    * @param timeOut timout of the search in ms
@@ -60,16 +60,14 @@ public:
    * @param port the port on which to perform the scan
    * @return a list of devices
    */
-  std::vector<DeviceInfo> doScan(unsigned           timeOut,
-                                 const std::string& broadcastAddress = DEFAULT_BROADCAST_ADDR,
-                                 std::uint16_t      port             = DEFAULT_PORT);
+  std::vector<DeviceInfo> doScan(unsigned int timeOut, std::uint16_t port = DEFAULT_PORT);
 
   /**
    * Assigns a new ip configuration to a device based on the MAC address
    * @param destinationMac MAC address of the device on to which to assign the new configuration
    * @param colaVer cola version of the device
    * @param ipAddr new ip address of the device
-   * @param ipMask new network mask of the device
+   * @param prefixLength the network prefix length of the server in the CIDR manner
    * @param ipGateway new gateway of the device
    * @param dhcp true if dhcp should be enabled
    * @param timout timeout in ms
@@ -78,13 +76,13 @@ public:
   bool assign(const MacAddress&  destinationMac,
               ProtocolType       colaVer,
               const std::string& ipAddr,
-              const std::string& ipMask    = DEFAULT_IP_MASK,
+              std::uint8_t       prefixLength,
               const std::string& ipGateway = DEFAULT_GATEWAY,
               bool               dhcp      = DEFAULT_DHCP,
-              unsigned           timout    = DEFAULT_TIMEOUT);
+              unsigned int       timout    = DEFAULT_TIMEOUT);
 
-  static MacAddress                convertMacToStruct(const std::string& basicString);
-  static std::string               convertMacToString(const MacAddress& macAddress);
+  static MacAddress  convertMacToStruct(const std::string& basicString);
+  static std::string convertMacToString(const MacAddress& macAddress);
 
 private:
   using ByteBuffer = std::vector<std::uint8_t>;
@@ -94,6 +92,7 @@ private:
   DeviceInfo                       parseAutoIPXml(std::stringstream& rStringStream);
   DeviceInfo                       parseAutoIPBinary(const ByteBuffer& receivedBuffer);
   static std::vector<std::uint8_t> convertIpToBinary(const std::string& address);
+  static std::string               networkPrefixToMask(std::uint8_t prefixLength);
 };
 
 } // namespace visionary

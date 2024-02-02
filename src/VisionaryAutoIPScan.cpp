@@ -5,15 +5,15 @@
 
 #include "VisionaryAutoIPScan.h"
 
-#include <limits>
-#include <memory>
-#include <sstream>
-
+#include <bitset>
 #include <chrono>
 #include <cstddef> // for size_t
 #include <cstdint>
 #include <iostream>
+#include <limits>
+#include <memory>
 #include <random>
+#include <sstream>
 #include <string>
 
 #include "VisionaryEndian.h"
@@ -52,18 +52,30 @@ const std::uint8_t kRplIpconfig  = 0x91; // replied by sensor; confirmation to I
 const std::uint8_t kRplNetscan   = 0x95; // replied by sensors; with information like device name, serial number, IP,...
 const std::uint8_t kRplScanColaB = 0x90; // replied by sensors; with information like device name, serial number, IP,...
 
-std::vector<VisionaryAutoIPScan::DeviceInfo> VisionaryAutoIPScan::doScan(unsigned           timeOut,
-                                                                         const std::string& broadcastAddress,
-                                                                         std::uint16_t      port)
+std::vector<VisionaryAutoIPScan::DeviceInfo> VisionaryAutoIPScan::doScan(unsigned int timeOut, std::uint16_t port)
 {
   // Init Random generator
   std::random_device                           rd;
   std::default_random_engine                   mt(rd());
-  unsigned int                                 teleIdCounter = mt();
+  std::uint32_t                                teleIdCounter = mt();
   std::vector<VisionaryAutoIPScan::DeviceInfo> deviceList;
 
   std::unique_ptr<UdpSocket> pTransport(new UdpSocket());
 
+  // serverIP
+  std::vector<std::uint8_t> ipAddrVector = convertIpToBinary(m_serverIP);
+  // server net mask
+  std::vector<std::uint8_t> maskVector = convertIpToBinary(m_serverNetMask);
+
+  // generate broadcast address according to the IP and the mask
+  std::string broadcastAddress{};
+  // As the definition of IPv4, ipAddrVector and maskVector have 4 elements correspondingly.
+  constexpr std::size_t kIpAddrVectorSize{4u};
+  for (std::size_t i = 0; i < kIpAddrVectorSize; ++i)
+  {
+    broadcastAddress +=
+      std::to_string((~maskVector[i] & 0xff) | ipAddrVector[i]) + (i + 1u == kIpAddrVectorSize ? "" : ".");
+  }
   if (pTransport->connect(broadcastAddress, port) != 0)
   {
     return deviceList;
@@ -72,9 +84,9 @@ std::vector<VisionaryAutoIPScan::DeviceInfo> VisionaryAutoIPScan::doScan(unsigne
   // AutoIP Discover Packet
   ByteBuffer autoIpPacket;
   autoIpPacket.push_back(0x10); // CMD
-  autoIpPacket.push_back(0x0);  // reserved
+  autoIpPacket.push_back(0x00); // reserved
   // length of datablock
-  autoIpPacket.push_back(0x0);
+  autoIpPacket.push_back(0x00);
   autoIpPacket.push_back(0x08);
   // Mac address
   autoIpPacket.push_back(0xFF);
@@ -93,17 +105,15 @@ std::vector<VisionaryAutoIPScan::DeviceInfo> VisionaryAutoIPScan::doScan(unsigne
   autoIpPacket.push_back(0x01); // Indicates that telegram is a CoLa Scan telegram
   autoIpPacket.push_back(0x0);
 
-  // serverIP
-  std::vector<std::uint8_t> ipAddrVector = convertIpToBinary(m_serverIP);
+  // server ip
   autoIpPacket.insert(autoIpPacket.end(), ipAddrVector.begin(), ipAddrVector.end());
 
   // server net mask
-  std::vector<std::uint8_t> maskVector = convertIpToBinary(m_serverNetMask);
   autoIpPacket.insert(autoIpPacket.end(), maskVector.begin(), maskVector.end());
 
   // Replace telegram id in packet
-  unsigned int curtelegramID = teleIdCounter++;
-  writeUnalignBigEndian<std::uint32_t>(autoIpPacket.data() + 10u, autoIpPacket.size() - 10u, curtelegramID);
+  std::uint32_t curtelegramID = teleIdCounter++;
+  writeUnalignBigEndian<std::uint32_t>(autoIpPacket.data() + 10u, sizeof(curtelegramID), curtelegramID);
 
   // Send Packet
   pTransport->send(autoIpPacket);
@@ -363,7 +373,7 @@ VisionaryAutoIPScan::DeviceInfo VisionaryAutoIPScan::parseAutoIPBinary(const Vis
       std::string ipAddr;
       for (int k = 0; k < 4; ++k)
       {
-        ipAddr += std::to_string(static_cast<unsigned>(readUnalignBigEndian<char>(buffer.data() + offset)));
+        ipAddr += std::to_string(static_cast<unsigned>(readUnalignBigEndian<uint8_t>(buffer.data() + offset)));
         if (k < 3)
         {
           ipAddr += ".";
@@ -378,7 +388,7 @@ VisionaryAutoIPScan::DeviceInfo VisionaryAutoIPScan::parseAutoIPBinary(const Vis
       std::string subNet;
       for (int k = 0; k < 4; ++k)
       {
-        subNet += std::to_string(static_cast<unsigned>(readUnalignBigEndian<char>(buffer.data() + offset)));
+        subNet += std::to_string(static_cast<unsigned>(readUnalignBigEndian<uint8_t>(buffer.data() + offset)));
         if (k < 3)
         {
           subNet += ".";
@@ -461,9 +471,29 @@ VisionaryAutoIPScan::DeviceInfo VisionaryAutoIPScan::parseAutoIPBinary(const Vis
   return deviceInfo;
 }
 
-VisionaryAutoIPScan::VisionaryAutoIPScan(const std::string& serverIP, const std::string& serverNetMask)
-  : m_serverIP(serverIP), m_serverNetMask(serverNetMask)
+VisionaryAutoIPScan::VisionaryAutoIPScan(const std::string& serverIP, std::uint8_t prefixLength) : m_serverIP(serverIP)
 {
+  m_serverNetMask = networkPrefixToMask(prefixLength);
+}
+
+std::string VisionaryAutoIPScan::networkPrefixToMask(std::uint8_t prefixLength)
+{
+  // For unsigned a, the value of a << b is the value of a * 2b , reduced modulo 2N where N is the number of bits in the
+  // return type (that is, bitwise left shift is performed and the bits that get shifted out of the destination type are
+  // discarded)
+  std::bitset<32> hostPrefix(0xffffffffull << (32u - prefixLength));
+  std::bitset<32> mask(0xff000000);
+
+  std::string hostMask{};
+
+  constexpr std::size_t kIpAddressLength{32u};
+  for (std::size_t i = 0; i < kIpAddressLength; i += 8u)
+  {
+    hostMask +=
+      std::to_string((((hostPrefix << i & mask) >> 24u).to_ulong())) + (i + 8u == kIpAddressLength ? "" : ".");
+  }
+
+  return hostMask;
 }
 
 std::vector<std::uint8_t> VisionaryAutoIPScan::convertIpToBinary(const std::string& address)
@@ -483,15 +513,18 @@ std::vector<std::uint8_t> VisionaryAutoIPScan::convertIpToBinary(const std::stri
 bool VisionaryAutoIPScan::assign(const MacAddress&                 destinationMac,
                                  VisionaryAutoIPScan::ProtocolType colaVer,
                                  const std::string&                ipAddr,
-                                 const std::string&                ipMask,
+                                 std::uint8_t                      prefixLength,
                                  const std::string&                ipGateway,
                                  bool                              dhcp,
-                                 unsigned                          timeout)
+                                 unsigned int                      timeout)
 {
   if (colaVer != ProtocolType::COLA_B && colaVer != ProtocolType::COLA_2)
   {
     return false;
   }
+
+  std::string ipMask{networkPrefixToMask(prefixLength)};
+
   ByteBuffer payload;
   if (colaVer == ProtocolType::COLA_B)
   {
@@ -530,7 +563,19 @@ bool VisionaryAutoIPScan::assign(const MacAddress&                 destinationMa
 
   std::unique_ptr<UdpSocket> pTransport(new UdpSocket());
 
-  if (pTransport->connect(DEFAULT_BROADCAST_ADDR, DEFAULT_PORT) != 0)
+  std::vector<std::uint8_t> addrVector = convertIpToBinary(m_serverIP);
+  std::vector<std::uint8_t> maskVector = convertIpToBinary(m_serverNetMask);
+  // generate broadcast address according to the IP and the mask
+  std::string broadcastAddress{};
+  // As the definition of IPv4, ipAddrVector and maskVector have 4 elements correspondingly.
+  constexpr std::size_t kIpAddrVectorSize{4u};
+  for (std::size_t i = 0; i < kIpAddrVectorSize; ++i)
+  {
+    broadcastAddress +=
+      std::to_string((~maskVector[i] & 0xff) | addrVector[i]) + (i + 1u == kIpAddrVectorSize ? "" : ".");
+  }
+
+  if (pTransport->connect(broadcastAddress, DEFAULT_PORT) != 0)
   {
     return false;
   }

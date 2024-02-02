@@ -203,7 +203,8 @@ CoLaCommand VisionaryControl::sendCommand(const CoLaCommand& command)
   CoLaCommand response =
     (m_pControlSession != nullptr) ? m_pControlSession->send(command) : CoLaCommand(std::vector<uint8_t>());
 
-  if (m_autoReconnect && response.getError() == CoLaError::SESSION_UNKNOWN_ID)
+  if (m_autoReconnect
+      && (response.getError() == CoLaError::SESSION_UNKNOWN_ID || response.getError() == CoLaError::NETWORK_ERROR))
   {
     if (m_pTransport)
     {

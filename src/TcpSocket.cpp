@@ -78,7 +78,7 @@ int TcpSocket::connect(const std::string& ipaddr, std::uint16_t port, std::uint3
   {
 #ifdef _WIN32
     unsigned long block = 1;
-    ::ioctlsocket(static_cast<unsigned int>(m_pSockRecord->socket()), FIONBIO, &block);
+    ::ioctlsocket(static_cast<unsigned int>(m_pSockRecord->socket()), static_cast<int>(FIONBIO), &block);
 #else
     int flags = fcntl(m_pSockRecord->socket(), F_GETFL, 0);
     if (flags == -1)
@@ -176,7 +176,7 @@ int TcpSocket::connect(const std::string& ipaddr, std::uint16_t port, std::uint3
   {
 #ifdef _WIN32
     unsigned long block = 0;
-    if (::ioctlsocket(m_pSockRecord->socket(), FIONBIO, &block) == SOCKET_ERROR)
+    if (::ioctlsocket(m_pSockRecord->socket(), static_cast<int>(FIONBIO), &block) == SOCKET_ERROR)
     {
       ::closesocket(m_pSockRecord->socket());
       m_pSockRecord->invalidate();

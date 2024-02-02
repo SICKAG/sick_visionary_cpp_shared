@@ -100,6 +100,12 @@ std::string CoLaParameterReader::readFlexString()
 {
   std::string str;
   uint16_t    len = readUInt();
+  return readFixedString(len);
+}
+
+std::string CoLaParameterReader::readFixedString(uint16_t len)
+{
+  std::string str;
   if (len)
   {
     checkSize(m_currentPosition, len);
